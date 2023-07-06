@@ -1,0 +1,44 @@
+body {
+    background-color: beige;
+}
+
+.board {
+    background-color: white;
+    width: 560px;
+    height: 560px;
+}
+
+.row {
+    display: flex;
+}
+
+.cell {
+    width: 70px;
+    height: 70px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.black {
+    background-color: black;
+}
+
+.piece {
+    width: 50px;
+    height: 50px;
+    border-radius: 100%;    
+}
+
+.p1 {
+    background-color: brown;
+}
+
+.p2 {
+    background-color: chocolate;
+}
+
+.selected {
+    border: 3px solid yellow;
+    box-sizing: border-box;
+}
