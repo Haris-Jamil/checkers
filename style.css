@@ -31,7 +31,7 @@ body {
 }
 
 .p1 {
-    background-color: purple;
+    background-color: brown;
 }
 
 .p2 {
@@ -39,6 +39,11 @@ body {
 }
 
 .selected {
-    border: 3px solid yellow;
+    border: 4px solid yellow;
+    box-sizing: border-box;
+}
+
+.king {
+    border: 4px solid gold;
     box-sizing: border-box;
 }

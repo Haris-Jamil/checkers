@@ -9,11 +9,13 @@ export class Board {
     cells: Cell[][] = [];
     selected: Piece = null;
     turn: Player;
+    oppositePlayer: Player;
 
     constructor(p1, p2){
         this.player1 = p1;
         this.player2 = p2;
         this.turn = p1;
+        this.oppositePlayer = p2;
         this.makeCells();
         this.makePieces();
         this.renderBoard();
@@ -71,7 +73,8 @@ export class Board {
                         piece.classList.add('p1');
                     } else {
                         piece.classList.add('p2');
-                    }
+                    }      
+                    piece.classList.add(this.cells[y][x].piece.isKing ? 'king' : 'normal');              
                     if (this.cells[y][x].piece === this.selected) {
                         cell.classList.add('selected');
                     }
@@ -98,9 +101,9 @@ export class Board {
                         }
                     }
                 } else {
-                    if (this.selected.x === x && this.selected.y === y) {
-                        this.selected = null;
-                        this.renderBoard(); 
+                    if (this.cells[y][x].piece?.player === this.turn) {
+                        this.selected = this.cells[y][x].piece;
+                        this.renderBoard();
                         return;
                     }
                     const normalMove: boolean = this.isValidNormalMove(this.cells[y][x]);
@@ -109,11 +112,17 @@ export class Board {
                         this.cells[this.selected.y][this.selected.x].piece = null;
                         this.selected.x = x;
                         this.selected.y = y;
-                        this.cells[y][x].piece = this.selected;  
-                        this.selected = null;
+                        this.cells[y][x].piece = this.selected;
+                        if (this.turn === this.player1 && y === 7) {
+                            this.cells[y][x].piece.isKing = true;
+                        } else if (this.turn === this.player2 && y === 0) {
+                            this.cells[y][x].piece.isKing = true;
+                        }                        
                         if (!killingMove || !this.canKillMore(this.cells[y][x])) {
-                            this.turn = this.turn === this.player1 ? this.player2 : this.player1;  
-                        }                                           
+                            this.oppositePlayer = this.turn;
+                            this.turn = this.getOppositePlayer();
+                        }       
+                        this.selected = null;                                    
                     }
                 }                
                 this.renderBoard();                
@@ -123,14 +132,15 @@ export class Board {
     }
 
     canKillMore(cell: Cell): boolean {        
-        const playerName = this.turn === this.player1 ? 'p1' : 'p2';
+        const [currPlayer, oppPlayer] = [this.turn.name, this.oppositePlayer.name];
         try {
             if (cell.x === 0) {
-                return this[playerName + 'CanKillOnRight'](cell);
+                return this[currPlayer + 'CanKillOnRight'](cell) || (this.selected.isKing &&  this[oppPlayer + 'CanKillOnRight'](cell));
             } else if (cell.x === 7) {
-                return this[playerName + 'CanKillOnLeft'](cell);
+                return this[currPlayer + 'CanKillOnLeft'](cell) || (this.selected.isKing &&  this[oppPlayer + 'CanKillOnLeft'](cell));
             } else {
-                return (this[playerName + 'CanKillOnLeft'](cell) || this[playerName + 'CanKillOnRight'](cell));
+                return (this[currPlayer + 'CanKillOnLeft'](cell) || this[currPlayer + 'CanKillOnRight'](cell)) || 
+                    (this.selected.isKing && (this[oppPlayer + 'CanKillOnLeft'](cell) || this[oppPlayer + 'CanKillOnRight'](cell)));
             }        
         } catch (ex) {
             return false;
@@ -138,52 +148,53 @@ export class Board {
     }
 
     p1CanKillOnRight(cell: Cell): boolean {
-        return this.cells[cell.y + 1][cell.x + 1].piece?.player === this.player2 && this.cells[cell.y + 2][cell.x + 2].isEmpty(); 
+        return this.cells[cell.y + 1][cell.x + 1].piece?.player === this.oppositePlayer && this.cells[cell.y + 2][cell.x + 2].isEmpty(); 
     }
 
     p1CanKillOnLeft(cell: Cell): boolean {
-        return this.cells[cell.y + 1][cell.x - 1].piece?.player === this.player2 && this.cells[cell.y + 2][cell.x - 2].isEmpty();
+        return this.cells[cell.y + 1][cell.x - 1].piece?.player === this.oppositePlayer && this.cells[cell.y + 2][cell.x - 2].isEmpty();
     }
 
     p2CanKillOnRight(cell: Cell): boolean {
-        return this.cells[cell.y - 1][cell.x + 1].piece?.player === this.player1 && this.cells[cell.y - 2][cell.x + 2].isEmpty(); 
+        return this.cells[cell.y - 1][cell.x + 1].piece?.player === this.oppositePlayer && this.cells[cell.y - 2][cell.x + 2].isEmpty(); 
     }
 
     p2CanKillOnLeft(cell: Cell): boolean {
-        return this.cells[cell.y - 1][cell.x - 1].piece?.player === this.player1 && this.cells[cell.y - 2][cell.x - 2].isEmpty(); 
+        return this.cells[cell.y - 1][cell.x - 1].piece?.player === this.oppositePlayer && this.cells[cell.y - 2][cell.x - 2].isEmpty(); 
     }
 
     
 
     isValidNormalMove(cellToMove: Cell): boolean {        
         const validHorizontalMovement = this.selected.x - 1 === cellToMove.x || this.selected.x + 1 === cellToMove.x;
-        if (this.turn === this.player1 && this.selected.y + 1 === cellToMove.y && validHorizontalMovement ) {
+        if ((this.turn === this.player1 || this.selected.isKing) && this.selected.y + 1 === cellToMove.y && validHorizontalMovement ) {
             return true;
         } 
-        if (this.turn === this.player2 && this.selected.y - 1 === cellToMove.y && validHorizontalMovement ) {
+        if ((this.turn === this.player2 || this.selected.isKing) && this.selected.y - 1 === cellToMove.y && validHorizontalMovement ) {
             return true;
         }       
         return false
     }
 
     isValidKillingMove(cellToMove: Cell): boolean {
-        if (this.turn === this.player1 && this.selected.y + 2 === cellToMove.y ) {
-            if ( this.selected.x - 2 === cellToMove.x && this.cells[this.selected.y + 1][this.selected.x - 1].piece?.player === this.player2) {
+        const otherPlayer: Player = this.getOppositePlayer();
+        if ((this.turn === this.player1 || this.selected.isKing) && this.selected.y + 2 === cellToMove.y ) {
+            if ( this.selected.x - 2 === cellToMove.x && this.cells[this.selected.y + 1][this.selected.x - 1].piece?.player === otherPlayer) {
                 this.cells[this.selected.y + 1][this.selected.x - 1].piece = null;
                 return true;
             }     
-            if ( this.selected.x + 2 === cellToMove.x && this.cells[this.selected.y + 1][this.selected.x + 1].piece?.player === this.player2) {
+            if ( this.selected.x + 2 === cellToMove.x && this.cells[this.selected.y + 1][this.selected.x + 1].piece?.player === otherPlayer) {
                 this.cells[this.selected.y + 1][this.selected.x + 1].piece = null;
                 return true;
             }     
         } 
 
-        if (this.turn === this.player2 && this.selected.y - 2 === cellToMove.y ) {
-            if ( this.selected.x - 2 === cellToMove.x && this.cells[this.selected.y - 1][this.selected.x - 1].piece?.player === this.player1) {
+        if ((this.turn === this.player2 || this.selected.isKing) && this.selected.y - 2 === cellToMove.y ) {
+            if ( this.selected.x - 2 === cellToMove.x && this.cells[this.selected.y - 1][this.selected.x - 1].piece?.player === otherPlayer) {
                 this.cells[this.selected.y - 1][this.selected.x - 1].piece = null;
                 return true;
             }     
-            if ( this.selected.x + 2 === cellToMove.x && this.cells[this.selected.y - 1][this.selected.x + 1].piece?.player === this.player1) {
+            if ( this.selected.x + 2 === cellToMove.x && this.cells[this.selected.y - 1][this.selected.x + 1].piece?.player === otherPlayer) {
                 this.cells[this.selected.y - 1][this.selected.x + 1].piece = null;
                 return true;
             }     
@@ -194,5 +205,9 @@ export class Board {
     isOwnPiece(piece: Piece): boolean {
         return this.turn === piece.player;           
     }   
+
+    getOppositePlayer(): Player {
+        return this.turn === this.player1 ? this.player2 : this.player1;
+    }
 
 }
