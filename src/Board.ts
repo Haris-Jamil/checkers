@@ -100,14 +100,20 @@ export class Board {
                 } else {
                     if (this.selected.x === x && this.selected.y === y) {
                         this.selected = null;
+                        this.renderBoard(); 
+                        return;
                     }
-                    if (this.cells[y][x].isEmpty() && (this.isValidNormalMove(this.cells[y][x]) || this.isValidKillingMove(this.cells[y][x]))) {                        
+                    const normalMove: boolean = this.isValidNormalMove(this.cells[y][x]);
+                    const killingMove: boolean =  this.isValidKillingMove(this.cells[y][x]);
+                    if (this.cells[y][x].isEmpty() && ( normalMove || killingMove)) {                        
                         this.cells[this.selected.y][this.selected.x].piece = null;
                         this.selected.x = x;
                         this.selected.y = y;
                         this.cells[y][x].piece = this.selected;  
                         this.selected = null;
-                        this.turn = this.turn === this.player1 ? this.player2 : this.player1;                     
+                        if (!killingMove || !this.canKillMore(this.cells[y][x])) {
+                            this.turn = this.turn === this.player1 ? this.player2 : this.player1;  
+                        }                                           
                     }
                 }                
                 this.renderBoard();                
@@ -116,7 +122,40 @@ export class Board {
         }, false);
     }
 
-    isValidNormalMove(cellToMove: Cell): boolean {
+    canKillMore(cell: Cell): boolean {        
+        const playerName = this.turn === this.player1 ? 'p1' : 'p2';
+        try {
+            if (cell.x === 0) {
+                return this[playerName + 'CanKillOnRight'](cell);
+            } else if (cell.x === 7) {
+                return this[playerName + 'CanKillOnLeft'](cell);
+            } else {
+                return (this[playerName + 'CanKillOnLeft'](cell) || this[playerName + 'CanKillOnRight'](cell));
+            }        
+        } catch (ex) {
+            return false;
+        }
+    }
+
+    p1CanKillOnRight(cell: Cell): boolean {
+        return this.cells[cell.y + 1][cell.x + 1].piece?.player === this.player2 && this.cells[cell.y + 2][cell.x + 2].isEmpty(); 
+    }
+
+    p1CanKillOnLeft(cell: Cell): boolean {
+        return this.cells[cell.y + 1][cell.x - 1].piece?.player === this.player2 && this.cells[cell.y + 2][cell.x - 2].isEmpty();
+    }
+
+    p2CanKillOnRight(cell: Cell): boolean {
+        return this.cells[cell.y - 1][cell.x + 1].piece?.player === this.player1 && this.cells[cell.y - 2][cell.x + 2].isEmpty(); 
+    }
+
+    p2CanKillOnLeft(cell: Cell): boolean {
+        return this.cells[cell.y - 1][cell.x - 1].piece?.player === this.player1 && this.cells[cell.y - 2][cell.x - 2].isEmpty(); 
+    }
+
+    
+
+    isValidNormalMove(cellToMove: Cell): boolean {        
         const validHorizontalMovement = this.selected.x - 1 === cellToMove.x || this.selected.x + 1 === cellToMove.x;
         if (this.turn === this.player1 && this.selected.y + 1 === cellToMove.y && validHorizontalMovement ) {
             return true;
