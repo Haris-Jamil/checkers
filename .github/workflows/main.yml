@@ -12,8 +12,5 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16
-      - name: node
-          entrypoint:npm
-          args:['install']
       - run: npm run build
       - run: npx surge ./ serious-checkers.surge.sh --token ${{ secrets.SURGE_TOKEN }}
